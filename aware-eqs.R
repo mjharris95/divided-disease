@@ -5,7 +5,8 @@ library(reshape2)
 full_aware<-function(h=NA, epsilon=NA, mu=NA, kappa=NA, beta=NA, rho=NA, 
                      theta=5, phi=.1, kappa_a=.1,  kappa_b=.1, rho_a=.1,  
                      mu_a=.05, mu_b=.05, beta_a=.5, beta_b=.5, rho_b=.1,
-                     ha=.99, hb=.99, epsilon_a=.5, epsilon_b=.5, ell=1, I0_a=.005/2, I0_b=.005/2, v_val=0, v_start=0, time=500, theta_a=.2, theta_b=.2){
+                     ha=.99, hb=.99, epsilon_a=.5, epsilon_b=.5, ell=1, I0_a=.005/2, I0_b=.005/2, v_val=0, v_start=0, time=500, theta_a=.2, theta_b=.2,
+                     get_params=FALSE){
   if(!is.na(beta)){
     beta_a<-beta
     beta_b<-beta
@@ -155,19 +156,27 @@ full_aware<-function(h=NA, epsilon=NA, mu=NA, kappa=NA, beta=NA, rho=NA,
   }
   
   times<-seq(from=0, to=time, by=1)
-  
+
   as.data.frame(dede(state, times, sir_upu, params))->sim
+  
+  if(get_params){
+    return(list(sim=sim, params=params))
+  }
+  
+  else{
+    return(sim)
+  }
 
 }
-#  
+
+# ls<-full_aware(h=.99, epsilon=.5, mu=.01, kappa=.3, beta=.2, rho=.1, theta=100, ell=1, phi=0, I0_a=.001, I0_b=0, get_params=TRUE)
+# sim<-ls$sim
+# params<-ls$params
+#
+# 
 # Smax<-max(c(sim$SUa, sim$SPa, sim$SUb, sim$SPb))
 # Imax<-max(c(sim$IUa, sim$IPa, sim$IUb, sim$IPb))
 # Rmax<-max(c(sim$RUa, sim$RPa, sim$RUb, sim$RPb))
-# 
-# # Smax<-.5
-# # Imax<-.5
-# # Rmax<-.5
-# # Amax<-1
 # 
 # par(mfcol=c(2, 5), lwd=2)
 # 
@@ -176,7 +185,6 @@ full_aware<-function(h=NA, epsilon=NA, mu=NA, kappa=NA, beta=NA, rho=NA,
 # lines(SPa~time, data=sim, col="#3D85BD", lty=2)
 # plot(SUb~time, data=sim, col="#3D85BD", type="l", ylim=c(0, Smax), main="b", ylab="Susceptible")
 # lines(SPb~time, data=sim, col="#3D85BD", lty=2)
-# 
 # 
 # plot(IUa~time, data=sim, type="l", col="#7CAA2D", ylim=c(0, Imax), ylab="Infected")
 # lines(IPa~time, data=sim, col="#7CAA2D", lty=2)
@@ -188,38 +196,19 @@ full_aware<-function(h=NA, epsilon=NA, mu=NA, kappa=NA, beta=NA, rho=NA,
 # plot(RUb~time, data=sim, col="#F5E356", type="l", ylim=c(0, Rmax), ylab="Recovered")
 # lines(RPb~time, data=sim, col="#F5E356", lty=2)
 # 
-# plot(SUa+IUa+RUa~time, data=sim, type="l", col="purple", ylim=c(0, .5), ylab="Attitude")
-# plot(SUb+IUb+RUb~time, data=sim, col="purple", type="l", ylim=c(0, .5), ylab="Attitude")
+# plot(SUa+IUa+RUa~time, data=sim, type="l", col="purple", ylim=c(0, Amax), ylab="Attitude")
+# plot(SUb+IUb+RUb~time, data=sim, col="purple", type="l", ylim=c(0, Amax), ylab="Attitude")
 # 
-# sim %>% mellt(id="time") %>% filter(variable %in% c("IUa", "IPa")) %>% group_by(time) %>% summarise(Ia=sum(value)) -> df
-# sim %>% mellt(id="time") %>% filter(variable %in% c("IUb", "IPb")) %>% group_by(time) %>% summarise(Ib=sum(value)) %>% right_join(df) -> df
+# sim %>% melt(id="time") %>% filter(variable %in% c("DUa", "DPa")) %>% group_by(time) %>% summarise(Da=sum(value)) -> df
+# sim %>% melt(id="time") %>% filter(variable %in% c("DUb", "DPb")) %>% group_by(time) %>% summarise(Db=sum(value)) %>% right_join(df) -> df
 # 
 # lapply(unique(df$time), function(x) c(ifelse(x-params[["ell"]]<0, 0, x-params[["ell"]]),x)) %>%
-#   lapply(function(times) filter(df, time %in% times) %>% summarise(alpha_a=params[["epsilon"]]*diff(Ia)+(1-params[["epsilon"]])*diff(Ib), 
-#                                                                    alpha_b=(1-params[["epsilon"]])*diff(Ia)+(params[["epsilon"]])*diff(Ib),
+#   lapply(function(times) filter(df, time %in% times) %>% summarise(alpha_a=params[["epsilon_a"]]*diff(Da)+(1-params[["epsilon_a"]])*diff(Db),
+#                                                                    alpha_b=(1-params[["epsilon_b"]])*diff(Da)+(params[["epsilon_b"]])*diff(Db),
 #                                                                    time=tail(times, 1))) %>%
 #   do.call(rbind, .) -> awareness
 # 
-# plot(alpha_a~time, data=awareness, type="l", col="#CB6318", ylim=c(-.5, .5), ylab="Awareness")
-# plot(alpha_b~time, data=awareness, col="#CB6318", type="l", ylim=c(-.5, .5), ylab="Awareness")
-# 
-# 
-# 
-# # 
-# # ggplot(sim)+geom_line(aes(x=time, y=SUa), color="#3D85BD")+
-# #   geom_line(aes(x=time, y=SPa), linetype=2, color="#3D85BD")+
-# #   geom_line(aes(x=time, y=SUb), alpha=.5, color="#3D85BD")+
-# #   geom_line(aes(x=time, y=SPb), linetype=2, alpha=.5, color="#3D85BD")+
-# #   theme_classic()
-# # 
-# # ggplot(sim)+geom_line(aes(x=time, y=IUa), color="#7CAA2D")+
-# #   geom_line(aes(x=time, y=IPa), linetype=2, color="#7CAA2D")+
-# #   geom_line(aes(x=time, y=IUb), alpha=.5, color="#7CAA2D")+
-# #   geom_line(aes(x=time, y=IPb), linetype=2, alpha=.5, color="#7CAA2D")+
-# #   theme_classic()
-# # 
-# # ggplot(sim)+geom_line(aes(x=time, y=RUa), color="#F5E356")+
-# #   geom_line(aes(x=time, y=RPa), linetype=2, color="#F5E356")+
-# #   geom_line(aes(x=time, y=RUb), alpha=.7, color="#F5E356")+
-# #   geom_line(aes(x=time, y=RPb), linetype=2, alpha=.7, color="#F5E356")+
-# #   theme_classic()
+# a_lim<-range(awareness$alpha_a, awareness$alpha_b)
+# plot(alpha_a~time, data=awareness, type="l", col="#CB6318", ylim=a_lim, ylab="Awareness")
+# plot(alpha_b~time, data=awareness, col="#CB6318", type="l", ylim=a_lim, ylab="Awareness")
+
