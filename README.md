@@ -4,5 +4,6 @@ Code for a compartmental model of disease transmission and awareness-based behav
 
 * aware-eqs is the script for the nonpharmaceutical intervention model
 * split-vax-eqs is the script for the vaccination model
-* aware-vax-process contains helper functions to transform the data and generate plots used in Figure 4 
-* aware-figures contains scripts used to generate Figures 1-4 and Supplementary Figure 3-6
+* aware-vax-process contains helper functions to transform the data and generate plots used in Figure 5 
+* aware-figures contains scripts used to generate the main text figures
+* aware-supp-figs contains scripts used to generate supplementary figures

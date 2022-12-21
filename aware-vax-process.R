@@ -133,7 +133,12 @@ plot_single_vax_2var<-function(df, var1_name=var1_name, var2_name=var2_name){
 }
 
 
-veff_plot<-function(df, is_B_plot=FALSE, legend=FALSE, no.asrt=FALSE){
+veff_plot<-function(df, is_B_plot=FALSE, legend=FALSE, eps_val=NA){
+  my_epsilons<-unlist(sort(unique(df$epsilon)))
+  lab_epsilons<-ifelse(my_epsilons==.5, "Uniform Awareness", 
+                       ifelse(my_epsilons==.99,"Separated Awareness",
+                              ifelse(my_epsilons>.5 & my_epsilons <.99, "Intermediate Awareness", "Other Awareness")))
+  
   if(legend==TRUE){
     legend.pos="bottom"
   }
@@ -141,8 +146,8 @@ veff_plot<-function(df, is_B_plot=FALSE, legend=FALSE, no.asrt=FALSE){
     legend.pos="none"
   }
   
-  if(no.asrt){
-    df %<>% filter(epsilon==.5)  
+  if(!is.na(eps_val)){
+    df %<>% filter(epsilon==eps_val)  
   }
   
   #calculate totals
@@ -171,11 +176,11 @@ ggplot()+geom_line(data=filter(df, group=="a"),
     xlab(expression(paste("Immune Protection")))+
     scale_color_manual("", 
                        labels = c(expression("group"~italic(a)), expression("group"~italic(b))),
-                       values=c("group *a*"="maroon", "group *b*"="blue"))+
-    scale_linetype_manual("", labels=c(expression(paste("Uniform Awareness (", epsilon, " = 0.5)")),
-                                   expression(paste("Separated Awareness (", epsilon, " = 0.99)"))),
-                          values=c("0.5"="dashed", "0.99"="solid"))+
-    scale_size_manual(values=c("normal"=.9, "small"=.7),
+                       values=c("group *a*"="#f4a896", "group *b*"="#358597"))+
+    scale_linetype_manual("", labels=c(expr(paste(!!lab_epsilons[1], " (", epsilon, " = ", !!my_epsilons[1], ")")),
+                                       expr(paste(!!lab_epsilons[2], " (", epsilon, " = ", !!my_epsilons[2], ")"))),
+                          values=c("dashed", "solid"))+
+    scale_size_manual(values=c("normal"=1.1, "small"=.8),
                       guide="none")+
     theme(legend.position=legend.pos,
           legend.box="horizontal", 
@@ -188,6 +193,64 @@ ggplot()+geom_line(data=filter(df, group=="a"),
     #scale_y_continuous(trans = 'log2')+
     guides(linetype = guide_legend(override.aes = list(color="black", size=.5)))
         
+}
+
+veff_plot_present<-function(df, is_B_plot=FALSE, legend=FALSE, no.asrt=FALSE){
+  if(legend==TRUE){
+    legend.pos="bottom"
+  }
+  else{
+    legend.pos="none"
+  }
+  
+  if(no.asrt){
+    df %<>% filter(epsilon==.5)  
+  }
+  
+  #calculate totals
+  #df %>% 
+  #  group_by(veff, epsilon) %>%
+  #  summarize(y=sum(y)*.5) %>%
+  #mutate(group="total") %>%
+  #  rbind(df) %>%
+  
+  
+  if(is_B_plot){
+    df %<>% mutate(size_dummy = ifelse(group=="b" & epsilon==.5, "small", "normal"))
+  } else {
+    df %<>% mutate(size_dummy = "normal")
+  }
+  ggplot()+geom_line(data=filter(df, group=="a"), 
+                     aes(x=veff, y=y, color="group *a*", 
+                         linetype=as.factor(epsilon), 
+                         size=size_dummy))+
+    geom_line(data=filter(df, group=="b"), 
+              aes(x=veff, y=y, color="group *b*",
+                  size=size_dummy,
+                  linetype=as.factor(epsilon)))+
+    ylab("")+
+    #xlab(expression(paste("Vaccine Efficacy ", "\n(1-", zeta,"; 1-",kappa, ")")))+
+    xlab(expression(paste("Immune Protection")))+
+    scale_color_manual("", 
+                       labels = c(expression("group"~italic(a)), expression("group"~italic(b))),
+                       values=c("group *a*"="#F4A896", "group *b*"="#358597"),
+                       guide="none")+
+    scale_linetype_manual("", labels=c(expr(paste(!!lab_epsilons[1], " (", epsilon, " = ", !!my_epsilons[1], ")")),
+                                       expr(paste(!!lab_epsilons[2], " (", epsilon, " = ", !!my_epsilons[2], ")"))),
+                          values=c("dashed", "solid"))+
+    scale_size_manual(values=c("normal"=.9, "small"=.7),
+                      guide="none")+
+    theme(legend.position=legend.pos,
+          legend.box="horizontal", 
+          panel.grid.major.x = element_line(size = .2, colour = NA),
+          panel.grid.minor.x = element_line(size = .2, colour = NA),
+          panel.grid.major.y = element_line(size = .2, colour = NA))+
+    scale_x_continuous(trans = trans_reverser("identity"), breaks=c(0, .25, .5, .75, 1), labels=c("1.00", "0.75", "0.50", "0.25", "0.00"))+
+    scale_y_continuous(trans="identity")+
+    #scale_x_continuous(trans = trans_reverser('log2'), breaks=c(.5, .125, .031, .008))+
+    #scale_y_continuous(trans = 'log2')+
+    guides(linetype = guide_legend(override.aes = list(color="black", size=.5)))
+  
 }
 
 
@@ -228,7 +291,7 @@ veff_plot_poster<-function(df, is_B_plot=FALSE, legend=FALSE, no.asrt=FALSE){
     #xlab(expression(paste("Vaccine Efficacy ", "\n(1-", zeta,"; 1-",kappa, ")")))+
     xlab(expression(paste("Immune Protection")))+
     scale_color_manual("Group",
-                       values=c("a"="maroon", "b"="blue"),
+                       values=c("a"="#f4a896", "b"="#358597"),
                        guide="none")+
     scale_linetype_manual("Awareness",
                           labels=c("Uniform", "Separated"),
@@ -240,9 +303,7 @@ veff_plot_poster<-function(df, is_B_plot=FALSE, legend=FALSE, no.asrt=FALSE){
           panel.grid.major.x = element_line(size = .2, colour = NA),
           panel.grid.minor.x = element_line(size = .2, colour = NA),
           panel.grid.major.y = element_line(size = .2, colour = NA))+
-    scale_x_continuous(trans = trans_reverser('log2'), breaks=c(.5, .125, .031, .008),
-                       labels=1-c(.5, .125, .031, .008))+
-    scale_y_continuous(trans = 'log2')+
+    scale_x_continuous(trans = trans_reverser('identity'))+
     guides(linetype = guide_legend(override.aes = list(color="black", size=.5)))
   
   
@@ -261,7 +322,7 @@ vdiff_group_plot<-function(df, var, name, legend=FALSE){
   ggplot(df)+geom_line(aes(y=var, x=theta_mult, color=group, linetype=as.factor(epsilon)))+
     scale_color_manual(" ",
                        labels=c("Group a", "Group b"),
-                       values=c("a"="maroon", "b"="blue"))+
+                       values=c("a"="#f4a896", "b"="#358597"))+
     scale_linetype_manual("Awareness",
                           labels=c(expression(paste("Uniform (", epsilon, " = 0.5)")),
                                    expression(paste("Separated (", epsilon, " = 0.99)"))),
